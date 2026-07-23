@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Email Signature Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  #preview, #preview *{ font-family:'Montserrat', Helvetica, Arial, sans-serif !important; }
+  :root{
+    --ink:#1a1a1a;
+    --paper:#ffffff;
+    --line:#e4e0db;
+    --muted:#8a8580;
+    --panel:#faf8f5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:820px;margin:0 auto;}
+  h1{font-size:20px;font-weight:700;margin:0 0 4px;letter-spacing:.2px;}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 28px;line-height:1.5;}
+  .controls{
+    display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;
+  }
+  .controls input, .controls select{
+    font-size:14px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+  }
+  .controls input{flex:1;min-width:180px;}
+  .controls input:focus, .controls select:focus{border-color:#b8afa4;}
+  .brand-tag{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:3px 8px;
+    border-radius:5px;
+    margin-bottom:14px;
+  }
+  .panel{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--panel);
+    padding:26px;
+  }
+  .preview-shell{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px;
+    overflow-x:auto;
+  }
+  .empty{
+    color:var(--muted);
+    font-size:14px;
+    padding:20px 0;
+    text-align:center;
+  }
+  .actions{
+    display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;
+  }
+  button{
+    font-size:13.5px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:8px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:transparent;
+    color:var(--ink);
+    border-color:var(--line);
+  }
+  .size-btn{
+    background:transparent;
+    color:var(--muted);
+    border-color:var(--line);
+    font-size:12.5px;
+    padding:8px 12px;
+  }
+  .size-btn.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  button:hover{opacity:.88;}
+  .copy-msg{font-size:12.5px;color:#2f8a4e;font-weight:600;display:none;}
+  .note{
+    margin-top:26px;
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .note b{color:var(--ink);}
+  .list{
+    margin-top:6px;
+    max-height:180px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+    display:none;
+  }
+  .list-item{
+    padding:9px 12px;
+    font-size:13.5px;
+    cursor:pointer;
+    border-bottom:1px solid var(--line);
+  }
+  .list-item:last-child{border-bottom:none;}
+  .list-item:hover{background:var(--panel);}
+  .list-item .t{color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Signature Lookup</h1>
+  <p class="sub">Find your name, copy your signature, paste it into your email client's signature settings.</p>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="Search by name…" autocomplete="off">
+  </div>
+  <div id="list" class="list"></div>
+
+  <div class="size-toggle" style="display:flex;gap:8px;margin-bottom:16px;">
+    <button id="sizeStandard" class="size-btn active" type="button">Standard icons</button>
+    <button id="sizeCompact" class="size-btn" type="button">Compact icons (mobile-friendly)</button>
+  </div>
+
+  <div class="panel">
+    <div id="brandTag" class="brand-tag" style="display:none;"></div>
+    <div class="preview-shell">
+      <div id="preview"><div class="empty">Search for a name above to preview their signature.</div></div>
+    </div>
+    <div class="actions">
+      <button id="copyBtn" style="display:none;">Copy Signature</button>
+      <button id="selectBtn" class="secondary" style="display:none;">Select for Manual Copy</button>
+      <span id="copyMsg" class="copy-msg">Copied ✓ — paste into your email signature settings</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Notes for rollout:</b> This is a working proof of concept for The Rise Collective brand template, built from the example you shared. A few things worth knowing: (1) always open this file in an actual browser tab (not the Claude chat preview) — the in-chat preview blocks external images for security reasons, which isn't representative of how it'll actually behave when pasted into Gmail; (2) if the one-click "Copy Signature" button ever misbehaves, use "Select for Manual Copy" instead, then Cmd/Ctrl+C — that uses your browser's native copy, which is the most reliable method there is; (3) when adding the next brand, I'll need that brand's example signature + employee list with photos, and this same tool extends to cover everyone.
+  </div>
+</div>
+
+<script>
+const GH_BASE = "https://raw.githubusercontent.com/yushia-marae/rise-signature-assets/main/";
+const ELLIOTT_PHOTO   = GH_BASE + "Elliott_Caldwell_portrait.png";
+const EMILY_PHOTO     = GH_BASE + "Emily_Uselman_portrait.png";
+const AVA_PHOTO       = GH_BASE + "Ava_Girard_portrait.png";
+const MIRABELLA_PHOTO = GH_BASE + "Mirabella_Judd_portrait.png";
+const ALBERT_PHOTO    = GH_BASE + "Albert_Brown_portrait.png";
+const YUSHIA_PHOTO    = GH_BASE + "Yushia_Marae_Tajanlangit_portrait.png";
+const ICON_URL = {
+  website:  GH_BASE + "website.png",
+  mail:     GH_BASE + "mail.png",
+  linkedin: GH_BASE + "linkedin.png",
+  instagram:GH_BASE + "instagram.png",
+  facebook: GH_BASE + "facebook.png",
+  pinterest:GH_BASE + "pinterest.png",
+  youtube:  GH_BASE + "youtube.png",
+  podcast:  GH_BASE + "podcast.png"
+};
+
+const brandTemplates = {
+  "THE RISE COLLECTIVE": {
+    display: "THE RISE COLLECTIVE",
+    accent: "#ffffff",
+    social: {
+      website:  "http://www.rise-collective.com/",
+      mail:     "https://rise-collective.com/#contact",
+      linkedin: "https://www.linkedin.com/company/the-risecollective/",
+      instagram:"https://www.instagram.com/the_rise_collective_?igsh=eWI3M2txcWw0bW5j",
+      facebook: "https://www.facebook.com/share/1G8kjPCyNm/?mibextid=wwXIfr",
+      pinterest:"https://www.pinterest.com/the_rise_collective/",
+      youtube:  "https://www.youtube.com/@the_rise_collective",
+      podcast:  "https://elliottcaldwell.com/"
+    }
+  }
+};
+
+const employees = [
+  { name:"Elliott Caldwell",          title:"CEO / Co-founder",              phone:"",             email:"elliott@rise-collective.com",   website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:ELLIOTT_PHOTO },
+  { name:"Emily Uselman",             title:"Chief Marketing Officer",       phone:"706-325-3120", email:"emily@rise-collective.com",     website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:EMILY_PHOTO },
+  { name:"Ava Girard",                title:"Marketing Manager",             phone:"803-507-3548", email:"ava@rise-collective.com",       website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:AVA_PHOTO },
+  { name:"Mirabella Judd",            title:"Marketing Manager",             phone:"813-997-2074", email:"mirabella@rise-collective.com", website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:MIRABELLA_PHOTO },
+  { name:"Albert Brown",              title:"Digital Marketing Manager",     phone:"619-586-2817", email:"albert@rise-collective.com",    website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:ALBERT_PHOTO },
+  { name:"Yushia Marae Tajanlangit",  title:"Marketing Associate",           phone:"",             email:"yushia@rise-collective.com",    website:"www.rise-collective.com", brand:"THE RISE COLLECTIVE", photo:YUSHIA_PHOTO }
+];
+
+// ---- simple generic icon glyphs (white paths on transparent, sit in a black rounded square) ----
+const icons = {
+  website:  '<circle cx="12" cy="12" r="7" fill="none" stroke="#fff" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="3" ry="7" fill="none" stroke="#fff" stroke-width="1.5"/><line x1="5" y1="12" x2="19" y2="12" stroke="#fff" stroke-width="1.5"/>',
+  mail:     '<rect x="5" y="7" width="14" height="10" rx="1.2" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M5.5 7.8l6.5 5 6.5-5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  linkedin: '<g transform="translate(5,5) scale(0.875)"><path d="M4.943 13.394V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016l.016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225z" fill="#fff"/></g>',
+  instagram:'<rect x="6" y="6" width="12" height="12" rx="3.5" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="3.2" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="15.6" cy="8.4" r="0.9" fill="#fff"/>',
+  facebook: '<path d="M13.6 18.5v-5.8h1.9l.3-2.3h-2.2V9c0-.66.18-1.1 1.1-1.1H16V5.86c-.2-.03-.9-.1-1.7-.1-1.7 0-2.9 1.05-2.9 2.98v1.7H9.6v2.3h1.8v5.8z" fill="#fff"/>',
+  pinterest:'<circle cx="12" cy="12" r="7" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M10.5 16.6l.75-3.5c-.12-.28-.2-.68-.2-1.08 0-1.02.6-1.78 1.35-1.78.64 0 .95.47 .95 1.05 0 .64-.4 1.6-.6 2.48-.18.72.36 1.32 1.08 1.32 1.3 0 2.2-1.68 2.2-3.68 0-1.52-1.05-2.64-2.9-2.64-2.08 0-3.4 1.55-3.4 3.28 0 .6.18 1.03.46 1.36.13.15.14.22.1.4l-.15.6c-.05.2-.2.26-.4.18-1.05-.44-1.55-1.6-1.55-2.88 0-2.15 1.85-4.72 5.4-4.72 2.9 0 4.8 2.1 4.8 4.35 0 2.98-1.65 5.2-4.1 5.2-.8 0-1.55-.44-1.83-.94l-.42 1.68c-.16.6-.48 1.2-.76 1.68z" fill="#fff"/>',
+  youtube:  '<rect x="4" y="7" width="16" height="10" rx="3" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M10.3 10.2l4.6 2.3-4.6 2.3z" fill="#fff"/>',
+  podcast:  '<rect x="9.7" y="5" width="4.6" height="8" rx="2.3" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M7 11.3a5 5 0 0 0 10 0" fill="none" stroke="#fff" stroke-width="1.5"/><line x1="12" y1="16.3" x2="12" y2="19" stroke="#fff" stroke-width="1.5"/><line x1="9.3" y1="19" x2="14.7" y2="19" stroke="#fff" stroke-width="1.5"/>'
+};
+function iconDataUri(name){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><rect width="24" height="24" rx="5" fill="#000000"/>${icons[name]}</svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+function initialsAvatar(name){
+  const parts = name.trim().split(/\s+/);
+  const ini = (parts[0][0] + (parts[parts.length-1][0]||"")).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="140" height="175"><rect width="140" height="175" fill="#efe9e3"/><text x="50%" y="50%" font-family="Helvetica,Arial,sans-serif" font-size="42" fill="#1a1a1a" text-anchor="middle" dominant-baseline="middle" font-weight="700">${ini}</text></svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+function fieldContent(label, value, link, accent){
+  if(!value) return "&nbsp;";
+  const valHtml = link
+    ? `<a href="${link}" style="color:${accent};text-decoration:none;">${value}</a>`
+    : `<span style="color:#1a1a1a;">${value}</span>`;
+  return `${label ? `<b>${label}</b> ` : ""}${valHtml}`;
+}
+
+const SPACER_GIF = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+
+let compactIcons = false;
+
+function signatureHTML(emp){
+  const brand = brandTemplates[emp.brand];
+  const photo = emp.photo || initialsAvatar(emp.name);
+  const iconOrder = ["website","mail","linkedin","instagram","facebook","pinterest","youtube","podcast"];
+  const iconSize = compactIcons ? 17 : 26;
+  const iconGap = compactIcons ? "&nbsp;" : "&nbsp;&nbsp;";
+  const iconRowHeight = compactIcons ? 23 : 30;
+  const iconImgs = iconOrder.map(k => {
+    const url = brand.social[k];
+    if(!url) return "";
+    return `<a href="${url}"><img src="${ICON_URL[k]}" width="${iconSize}" height="${iconSize}" style="display:inline-block;vertical-align:top;" alt="${k}"></a>${iconGap}`;
+  }).join("");
+
+  const bg = "background-color:#ffffff;";
+  return `
+  <table cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="font-family:'Montserrat',Helvetica,Arial,sans-serif;border-collapse:collapse;background-color:#ffffff;color-scheme:light only;">
+    <tr style="background-color:#ffffff;">
+      <td style="padding-right:18px;vertical-align:middle;${bg}">
+        <img src="${photo}" width="147" height="184" style="display:block;" alt="${emp.name}">
+      </td>
+      <td style="vertical-align:middle;${bg}">
+        <table cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;background-color:#ffffff;">
+          <tr><td height="20" style="vertical-align:top;font-size:13px;font-weight:700;letter-spacing:.07em;color:#1a1a1a;padding:0 0 6px 0;border-bottom:2px solid #1a1a1a;${bg}">${brand.display}</td></tr>
+          <tr><td height="8" style="vertical-align:top;font-size:1px;line-height:1px;padding:0;${bg}">&nbsp;</td></tr>
+          <tr><td height="18" style="vertical-align:top;font-size:15px;font-weight:700;letter-spacing:.03em;color:#1a1a1a;padding:0;${bg}">${emp.name.toUpperCase()}</td></tr>
+          <tr><td height="16" style="vertical-align:top;font-size:13.5px;color:#1a1a1a;padding:0;${bg}">${emp.title}</td></tr>
+          <tr><td height="10" style="vertical-align:top;font-size:1px;line-height:1px;padding:0;${bg}">&nbsp;</td></tr>
+          <tr><td height="18" style="vertical-align:top;font-size:13px;padding:0;${bg}">${fieldContent("p:", emp.phone, null, "#1a1a1a")}</td></tr>
+          <tr><td height="18" style="vertical-align:top;font-size:13px;padding:0;${bg}">${fieldContent("e:", emp.email, "mailto:"+emp.email, "#1a1a1a")}</td></tr>
+          <tr><td height="6" style="vertical-align:top;font-size:1px;line-height:1px;padding:0;${bg}">&nbsp;</td></tr>
+          <tr><td height="18" style="vertical-align:top;font-size:13px;font-weight:700;padding:0;${bg}"><a href="https://${emp.website}" style="color:#1a1a1a;text-decoration:none;">${emp.website}</a></td></tr>
+          <tr><td height="10" style="vertical-align:top;font-size:1px;line-height:1px;padding:0;${bg}">&nbsp;</td></tr>
+          <tr><td height="${iconRowHeight}" style="vertical-align:top;line-height:0;padding:0;white-space:nowrap;${bg}">${iconImgs}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+// ---- UI wiring ----
+const searchEl = document.getElementById("search");
+const listEl = document.getElementById("list");
+const previewEl = document.getElementById("preview");
+const brandTagEl = document.getElementById("brandTag");
+const copyBtn = document.getElementById("copyBtn");
+const selectBtn = document.getElementById("selectBtn");
+const copyMsg = document.getElementById("copyMsg");
+let currentEmp = null;
+
+function renderList(query){
+  const q = query.trim().toLowerCase();
+  if(!q){ listEl.style.display = "none"; listEl.innerHTML=""; return; }
+  const matches = employees.filter(e => e.name.toLowerCase().includes(q));
+  if(matches.length === 0){
+    listEl.style.display = "block";
+    listEl.innerHTML = `<div class="list-item" style="cursor:default;color:#8a8580;">No matches</div>`;
+    return;
+  }
+  listEl.style.display = "block";
+  listEl.innerHTML = matches.map((e,i) => `
+    <div class="list-item" data-idx="${employees.indexOf(e)}">
+      ${e.name}<div class="t">${e.title} · ${e.brand}</div>
+    </div>`).join("");
+}
+
+listEl.addEventListener("click", (ev) => {
+  const item = ev.target.closest(".list-item[data-idx]");
+  if(!item) return;
+  const emp = employees[parseInt(item.dataset.idx,10)];
+  selectEmployee(emp);
+});
+
+searchEl.addEventListener("input", (ev) => renderList(ev.target.value));
+
+const sizeStandardBtn = document.getElementById("sizeStandard");
+const sizeCompactBtn = document.getElementById("sizeCompact");
+sizeStandardBtn.addEventListener("click", () => {
+  compactIcons = false;
+  sizeStandardBtn.classList.add("active");
+  sizeCompactBtn.classList.remove("active");
+  if(currentEmp) previewEl.innerHTML = signatureHTML(currentEmp);
+});
+sizeCompactBtn.addEventListener("click", () => {
+  compactIcons = true;
+  sizeCompactBtn.classList.add("active");
+  sizeStandardBtn.classList.remove("active");
+  if(currentEmp) previewEl.innerHTML = signatureHTML(currentEmp);
+});
+
+function selectEmployee(emp){
+  currentEmp = emp;
+  searchEl.value = emp.name;
+  listEl.style.display = "none";
+  brandTagEl.style.display = "inline-block";
+  brandTagEl.textContent = emp.brand;
+  previewEl.innerHTML = signatureHTML(emp);
+  copyBtn.style.display = "inline-block";
+  selectBtn.style.display = "inline-block";
+  copyMsg.style.display = "none";
+}
+
+copyBtn.addEventListener("click", async () => {
+  if(!currentEmp) return;
+  const html = signatureHTML(currentEmp);
+  try{
+    const item = new ClipboardItem({
+      "text/html": new Blob([html], {type:"text/html"}),
+      "text/plain": new Blob([currentEmp.name], {type:"text/plain"})
+    });
+    await navigator.clipboard.write([item]);
+    copyMsg.style.display = "inline";
+    setTimeout(()=> copyMsg.style.display="none", 3000);
+  }catch(e){
+    // fallback: select the preview node and use execCommand
+    const range = document.createRange();
+    range.selectNodeContents(previewEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand("copy");
+    sel.removeAllRanges();
+    copyMsg.style.display = "inline";
+    setTimeout(()=> copyMsg.style.display="none", 3000);
+  }
+});
+
+selectBtn.addEventListener("click", () => {
+  if(!currentEmp) return;
+  const range = document.createRange();
+  range.selectNodeContents(previewEl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  previewEl.scrollIntoView({behavior:"smooth", block:"center"});
+});
+</script>
+</body>
+</html>
